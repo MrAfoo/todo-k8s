@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { CyberpunkThemeProvider } from "@/contexts/CyberpunkThemeContext";
 import { KeepAliveProvider } from "@/components/KeepAliveProvider";
+import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -31,6 +32,7 @@ export default function RootLayout({
             </ThemeProvider>
           </CyberpunkThemeProvider>
         </KeepAliveProvider>
+        <Analytics />
       </body>
     </html>
   );
