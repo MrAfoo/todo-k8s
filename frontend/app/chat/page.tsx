@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { betterAuthWrapper } from "@/lib/auth-wrapper";
 import { api } from '@/lib/api';
 import Navigation from "@/components/Navigation";
+import { useVoiceRecognition } from "@/hooks/useVoiceRecognition";
+import { useTextToSpeech } from "@/hooks/useTextToSpeech";
+import { prepareForSpeech } from "@/lib/text-utils";
 
 interface Message {
   id?: number;
@@ -30,8 +33,40 @@ export default function ChatPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [showSidebar, setShowSidebar] = useState(true);
+  const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputAreaRef = useRef<HTMLDivElement>(null);
+
+  // Voice recognition hook
+  const {
+    isListening,
+    transcript,
+    interimTranscript,
+    isSupported: isVoiceSupported,
+    startListening,
+    stopListening,
+    resetTranscript,
+  } = useVoiceRecognition({
+    continuous: false,
+    interimResults: true,
+    onResult: (text, isFinal) => {
+      if (isFinal) {
+        setInputMessage(text);
+        // Automatically stop after getting final result
+        stopListening();
+      }
+    },
+    onError: (error) => {
+      console.error('Voice recognition error:', error);
+      // Only show alert for actual errors (not aborted)
+      if (error && !error.includes('aborted')) {
+        alert(error);
+      }
+    },
+  });
+
+  // Text-to-speech hook
+  const { speak, cancel: cancelSpeech, isSpeaking, isSupported: isTTSSupported } = useTextToSpeech();
 
   useEffect(() => {
     if (!isPending && !session) {
@@ -113,6 +148,24 @@ export default function ChatPage() {
     }
   };
 
+  const toggleVoiceInput = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      // Clear any previous transcript and start fresh
+      setInputMessage('');
+      resetTranscript();
+      startListening();
+    }
+  };
+
+  const toggleTextToSpeech = () => {
+    setIsVoiceEnabled(!isVoiceEnabled);
+    if (isSpeaking) {
+      cancelSpeech();
+    }
+  };
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputMessage.trim() || loading) return;
@@ -126,6 +179,7 @@ export default function ChatPage() {
     const messageToSend = inputMessage;
     setInputMessage("");
     setLoading(true);
+    resetTranscript();
 
     // Don't minimize - it causes scroll issues
     // Keep input expanded for better UX
@@ -152,6 +206,13 @@ export default function ChatPage() {
 
       setMessages((prev) => [...prev, assistantMessage]);
       setConversationId(data.conversation_id);
+
+      // Speak the response if voice is enabled
+      if (isVoiceEnabled && isTTSSupported) {
+        // Clean the text by removing emojis, icons, and markdown before speaking
+        const cleanText = prepareForSpeech(data.message);
+        speak(cleanText);
+      }
 
       // Reload conversations to update the list
       loadConversations();
@@ -443,7 +504,7 @@ export default function ChatPage() {
                 <div className="flex-1 relative">
                   <span className="absolute left-3 top-3 text-neon-green font-mono text-sm">{'>'}</span>
                   <textarea
-                    value={inputMessage}
+                    value={inputMessage || interimTranscript}
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
@@ -451,12 +512,84 @@ export default function ChatPage() {
                         sendMessage(e);
                       }
                     }}
-                    placeholder="Enter command... (Shift+Enter for new line)"
+                    placeholder={isListening ? "Listening..." : "Enter command... (Shift+Enter for new line)"}
                     rows={1}
                     className="w-full pl-8 pr-4 py-3 bg-terminal-bg/50 border border-neon-green/30 rounded text-neon-green font-mono focus:outline-none focus:border-neon-cyan focus:shadow-[0_0_15px_rgba(0,255,65,0.3)] resize-none placeholder-neon-green/30 transition-all"
-                    disabled={loading}
+                    disabled={loading || isListening}
                   />
+                  {isListening && (
+                    <div className="absolute right-3 top-3 flex items-center gap-2">
+                      <span className="text-neon-pink text-xs font-mono animate-pulse">Recording...</span>
+                      <div className="w-2 h-2 bg-neon-pink rounded-full animate-pulse"></div>
+                    </div>
+                  )}
                 </div>
+                
+                {/* Voice Input Button */}
+                {isVoiceSupported && (
+                  <button
+                    type="button"
+                    onClick={toggleVoiceInput}
+                    disabled={loading}
+                    className={`px-4 py-3 border rounded transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed font-mono font-semibold flex items-center gap-2 ${
+                      isListening
+                        ? 'bg-neon-pink/20 text-neon-pink border-neon-pink shadow-[0_0_20px_rgba(255,20,147,0.5)] animate-pulse'
+                        : 'bg-neon-green/20 text-neon-green border-neon-green hover:bg-neon-green/30 hover:shadow-[0_0_20px_rgba(0,255,65,0.5)]'
+                    }`}
+                    title={isListening ? "Stop recording" : "Start voice input"}
+                  >
+                    {isListening ? (
+                      <>
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                          <rect x="6" y="6" width="12" height="12" rx="1" />
+                        </svg>
+                        <span className="hidden sm:inline">STOP</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                        </svg>
+                        <span className="hidden sm:inline">MIC</span>
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {/* Text-to-Speech Toggle */}
+                {isTTSSupported && (
+                  <button
+                    type="button"
+                    onClick={toggleTextToSpeech}
+                    disabled={loading}
+                    className={`px-4 py-3 border rounded transition-all transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed font-mono font-semibold flex items-center gap-2 ${
+                      isVoiceEnabled
+                        ? 'bg-neon-cyan/20 text-neon-cyan border-neon-cyan shadow-[0_0_20px_rgba(0,255,255,0.5)]'
+                        : 'bg-terminal-border/20 text-neon-green/50 border-terminal-border hover:bg-neon-cyan/10 hover:border-neon-cyan/50'
+                    }`}
+                    title={isVoiceEnabled ? "Disable voice responses" : "Enable voice responses"}
+                  >
+                    {isSpeaking ? (
+                      <>
+                        <svg className="w-5 h-5 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                        </svg>
+                        <span className="hidden sm:inline">SPEAKING</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                          <path d={isVoiceEnabled 
+                            ? "M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"
+                            : "M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"
+                          }/>
+                        </svg>
+                        <span className="hidden sm:inline">{isVoiceEnabled ? 'TTS ON' : 'TTS OFF'}</span>
+                      </>
+                    )}
+                  </button>
+                )}
+
                 <button
                   type="submit"
                   disabled={!inputMessage.trim() || loading}
@@ -481,7 +614,7 @@ export default function ChatPage() {
                 </button>
               </form>
               <p className="text-xs text-neon-green/50 mt-2 text-center font-mono">
-                [ENTER] to execute • [SHIFT+ENTER] for new line
+                {isVoiceSupported && '[MIC] for voice input • '}[ENTER] to execute • [SHIFT+ENTER] for new line
               </p>
             </div>
           </div>
