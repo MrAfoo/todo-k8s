@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     # Groq (free AI API)
     groq_api_key: str | None = None
     
+    # MCP Server
+    mcp_server_url: str = "http://localhost:8001"
+    
     # Application
     debug: bool = True
     allowed_origins: str = "http://localhost:3000,http://127.0.0.1:3000"

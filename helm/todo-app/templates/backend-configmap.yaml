@@ -1,0 +1,20 @@
+{{- if .Values.backend.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: backend
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+data:
+  ALGORITHM: {{ .Values.backend.config.algorithm | quote }}
+  ACCESS_TOKEN_EXPIRE_MINUTES: {{ .Values.backend.config.accessTokenExpireMinutes | quote }}
+  DEBUG: {{ .Values.backend.config.debug | quote }}
+  ALLOWED_ORIGINS: {{ .Values.backend.config.allowedOrigins | quote }}
+  {{- if .Values.mcpServer.enabled }}
+  MCP_SERVER_URL: "http://mcp-server:{{ .Values.mcpServer.service.port }}"
+  {{- else }}
+  MCP_SERVER_URL: {{ .Values.backend.config.mcpServerUrl | default "http://localhost:8001" | quote }}
+  {{- end }}
+{{- end }}

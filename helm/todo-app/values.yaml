@@ -1,0 +1,145 @@
+# Default values for todo-app Helm chart
+
+# Namespace
+namespace: todo-app
+
+# Global settings
+global:
+  imagePullPolicy: IfNotPresent
+
+# PostgreSQL Database
+postgresql:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "16-alpine"
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  persistence:
+    enabled: true
+    size: 5Gi
+    # storageClass: standard
+  config:
+    database: todo_db
+    user: postgres
+  # WARNING: Change in production - use external secret management
+  auth:
+    password: "changeme_postgres_password"
+
+# Backend API
+backend:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: todo-backend
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 8000
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  # WARNING: Change in production - use external secret management
+  secrets:
+    betterAuthSecret: "your-secret-key-min-32-chars-long-change-in-production"
+    secretKey: "your-secret-key-here-change-in-production"
+    groqApiKey: "your-groq-api-key-here"
+  config:
+    algorithm: "HS256"
+    accessTokenExpireMinutes: 30
+    debug: false
+    allowedOrigins: "http://localhost:3000,http://frontend:3000"
+    mcpServerUrl: "http://mcp-server:8001"
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+
+# Frontend Application
+frontend:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: todo-frontend
+    tag: latest
+  service:
+    type: LoadBalancer
+    port: 80
+    targetPort: 3000
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  env:
+    nextPublicApiUrl: "http://backend:8000"
+    nodeEnv: "production"
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+
+# MCP Server
+mcpServer:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: todo-backend  # Reuses backend image
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 8001
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 70
+  config:
+    logLevel: info
+
+# Ingress configuration (optional)
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: todo-app.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: todo-app-tls
+      hosts:
+        - todo-app.example.com
+
+# Security context
+securityContext:
+  backend:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+  frontend:
+    runAsNonRoot: true
+    runAsUser: 1001
+    fsGroup: 1001

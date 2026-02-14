@@ -1,0 +1,61 @@
+Thank you for installing {{ .Chart.Name }}!
+
+Your release is named {{ .Release.Name }}.
+
+To learn more about the release, try:
+
+  $ helm status {{ .Release.Name }} -n {{ .Values.namespace }}
+  $ helm get all {{ .Release.Name }} -n {{ .Values.namespace }}
+
+Application Components:
+{{- if .Values.postgresql.enabled }}
+  - PostgreSQL: postgres.{{ .Values.namespace }}.svc.cluster.local:5432
+{{- end }}
+{{- if .Values.backend.enabled }}
+  - Backend API: backend.{{ .Values.namespace }}.svc.cluster.local:{{ .Values.backend.service.port }}
+{{- end }}
+{{- if .Values.frontend.enabled }}
+  - Frontend: frontend.{{ .Values.namespace }}.svc.cluster.local:{{ .Values.frontend.service.port }}
+{{- end }}
+
+{{- if .Values.frontend.enabled }}
+{{- if eq .Values.frontend.service.type "LoadBalancer" }}
+
+To get the application URL:
+  NOTE: It may take a few minutes for the LoadBalancer IP to be available.
+
+  export SERVICE_IP=$(kubectl get svc frontend -n {{ .Values.namespace }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+  echo "http://$SERVICE_IP"
+
+{{- else if eq .Values.frontend.service.type "NodePort" }}
+
+To get the application URL:
+  export NODE_PORT=$(kubectl get svc frontend -n {{ .Values.namespace }} -o jsonpath='{.spec.ports[0].nodePort}')
+  export NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[0].address}')
+  echo "http://$NODE_IP:$NODE_PORT"
+
+{{- else if eq .Values.frontend.service.type "ClusterIP" }}
+
+To access the application locally:
+  kubectl port-forward -n {{ .Values.namespace }} svc/frontend 3000:{{ .Values.frontend.service.port }}
+  echo "http://localhost:3000"
+
+{{- end }}
+{{- end }}
+
+{{- if .Values.ingress.enabled }}
+
+Ingress is enabled. The application will be available at:
+{{- range .Values.ingress.hosts }}
+  - https://{{ .host }}
+{{- end }}
+{{- end }}
+
+SECURITY WARNING:
+{{- if or (eq .Values.backend.secrets.betterAuthSecret "your-secret-key-min-32-chars-long-change-in-production") (eq .Values.postgresql.auth.password "changeme_postgres_password") }}
+  ⚠️  You are using default passwords/secrets!
+  ⚠️  Please update values.yaml with secure credentials before deploying to production.
+  ⚠️  Consider using external secret management (e.g., Sealed Secrets, External Secrets Operator).
+{{- end }}
+
+For more information, visit: https://github.com/your-org/todo-app

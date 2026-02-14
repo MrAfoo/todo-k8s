@@ -1,0 +1,47 @@
+# Root .dockerignore
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+docs/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Kubernetes and deployment
+k8s/
+helm/
+scripts/
+
+# Environment
+.env
+.env.local
+.env.*
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+.pytest_cache/
+.nyc_output/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/

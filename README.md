@@ -1,361 +1,427 @@
-# Full-Stack AI-Powered Todo Application
+# 🚀 AI-Powered Todo Application with Kubernetes
 
-A modern full-stack web application with **Better Auth** authentication, **AI Chatbot** powered by **Groq** (free!), and **FastAPI** backend.
+> A modern, cloud-native task management system with AI assistant powered by Groq Llama 3.3
 
-## 🎯 Overview
+[![Kubernetes](https://img.shields.io/badge/kubernetes-%23326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white)](https://kubernetes.io/)
+[![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Next.js](https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-316192?style=for-the-badge&logo=postgresql)](https://www.postgresql.org/)
 
-This is a production-ready todo application featuring:
+## ✨ Features
 
-- 🤖 **AI Chatbot**: Manage tasks conversationally using Groq's Llama 3.3 70B (FREE!). Also Voice cmd feature enabled!
-- 🔐 **Better Auth + JWT**: Secure authentication with token-based API access
-- ✅ **Task Management**: Full CRUD operations with user isolation
-- 🧠 **MCP Server**: Model Context Protocol for AI tool integration
-- 👤 **Multi-user Support**: Each user has their own tasks
-- 🎨 **Modern UI**: Responsive design with Tailwind CSS and dark mode
-- 🗄️ **PostgreSQL Database**: Persistent data storage
-- 🔒 **Stateless Auth**: Frontend and backend verify JWT tokens independently
-- 🧪 **Comprehensive Tests**: 15/15 backend tests passing
+- 🤖 **AI-Powered Chat** - Natural language task management using Groq Llama 3.3 70B
+- ✅ **Task Management** - Create, update, delete, and organize tasks with priorities
+- 🔐 **Authentication** - Secure user authentication with Better Auth
+- 🎨 **Modern UI** - Responsive design with Tailwind CSS and cyberpunk theme
+- ☁️ **Cloud-Native** - Fully containerized and orchestrated with Kubernetes
+- 📊 **Scalable** - Horizontal pod autoscaling for high availability
+- 🔄 **Real-time** - Live updates and seamless user experience
 
-## 🚀 Quick Start (5 Minutes)
+## 🏗️ Architecture
 
-### 1. Set Up Environment Variables
-
-Create `.env` files with the **SAME SECRET KEY** in both:
-
-**backend/.env**:
-```bash
-DATABASE_URL=postgresql://postgres:password@localhost:5432/todo_db
-BETTER_AUTH_SECRET=your-secret-key-min-32-chars-long-change-in-production
-GROQ_API_KEY=gsk_your_groq_api_key_here
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    KUBERNETES CLUSTER                        │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │   Frontend   │  │   Backend    │  │  MCP Server  │      │
+│  │  (Next.js)   │◄─┤   (FastAPI)  │◄─┤  (AI Tools)  │      │
+│  │  Port: 3000  │  │  Port: 8000  │  │  Port: 8001  │      │
+│  └──────────────┘  └──────┬───────┘  └──────────────┘      │
+│                           │                                  │
+│                           ▼                                  │
+│                    ┌──────────────┐                         │
+│                    │  PostgreSQL  │                         │
+│                    │  (Database)  │                         │
+│                    │  Port: 5432  │                         │
+│                    └──────────────┘                         │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-**frontend/.env.local**:
+## 🛠️ Tech Stack
+
+### Frontend
+- **Next.js 14** - React framework with App Router
+- **TypeScript** - Type-safe JavaScript
+- **Tailwind CSS** - Utility-first CSS framework
+- **Better Auth** - Authentication library
+
+### Backend
+- **FastAPI** - Modern Python web framework
+- **SQLAlchemy** - SQL toolkit and ORM
+- **Alembic** - Database migrations
+- **PostgreSQL 16** - Relational database
+- **Groq API** - AI inference (Llama 3.3 70B)
+
+### Infrastructure
+- **Docker** - Containerization
+- **Kubernetes** - Container orchestration
+- **Helm** - Kubernetes package manager
+- **Minikube** - Local Kubernetes cluster
+
+## 📋 Prerequisites
+
+Before you begin, ensure you have installed:
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (v20.10+)
+- [Minikube](https://minikube.sigs.k8s.io/docs/start/) (v1.30+)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/) (v1.28+)
+- [Helm](https://helm.sh/docs/intro/install/) (v3.8+)
+- [Git](https://git-scm.com/downloads)
+
+## 🚀 Quick Start
+
+### 1. Clone the Repository
+
 ```bash
-NEXT_PUBLIC_API_URL=http://localhost:8000
-BETTER_AUTH_SECRET=your-secret-key-min-32-chars-long-change-in-production
-DATABASE_URL=postgresql://postgres:password@localhost:5432/todo_db
+git clone https://github.com/yourusername/todo-app.git
+cd todo-app
 ```
 
-⚠️ **CRITICAL**: 
-- The `BETTER_AUTH_SECRET` must be **identical** in both files!
-- Get your **FREE** Groq API key at https://console.groq.com (takes 2 minutes!)
+### 2. Set Up Environment Variables
 
-### 2. Set Up Database
+Get your free Groq API key from [console.groq.com](https://console.groq.com/keys)
+
+Edit the Helm values file:
 
 ```bash
-# Create PostgreSQL database
-createdb todo_db
+# Windows
+notepad helm/todo-app/values.yaml
 
-# Run migrations
-cd backend
-uv sync
-uv run alembic upgrade head
-
-cd ../frontend
-npm install
-npx better-auth migrate
+# Linux/Mac
+nano helm/todo-app/values.yaml
 ```
 
-### 3. Start Services
+Update the `groqApiKey` value:
+
+```yaml
+backend:
+  secrets:
+    groqApiKey: "your-groq-api-key-here"
+```
+
+### 3. Deploy the Application
+
+**Option A: Automated Setup (Recommended)**
+
+```powershell
+# Windows
+.\scripts\minikube-setup.ps1
+
+# Linux/Mac
+./scripts/minikube-setup.sh
+```
+
+This script will:
+- ✅ Start Minikube
+- ✅ Build Docker images
+- ✅ Deploy with Helm
+- ✅ Open the app in your browser
+
+**Option B: Manual Setup**
 
 ```bash
-# Terminal 1 - Backend
-cd backend
-uv run uvicorn app.main:app --reload --port 8000
+# 1. Start Minikube
+minikube start --driver=docker --cpus=4 --memory=8192
 
-# Terminal 2 - Frontend  
-cd frontend
-npm run dev
+# 2. Configure Docker to use Minikube's daemon
+# Windows PowerShell
+& minikube -p minikube docker-env --shell powershell | Invoke-Expression
+
+# Linux/Mac
+eval $(minikube docker-env)
+
+# 3. Build images
+docker build -t todo-frontend:latest ./frontend
+docker build -t todo-backend:latest ./backend
+docker build -t todo-mcp:latest ./backend
+
+# 4. Deploy with Helm
+helm upgrade --install todo-app ./helm/todo-app \
+  --namespace todo-app \
+  --create-namespace \
+  --set backend.image.tag=latest \
+  --set frontend.image.tag=latest \
+  --set mcp.image.tag=latest
+
+# 5. Access the application
+minikube service frontend -n todo-app
 ```
 
 ### 4. Access the Application
 
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **API Docs**: http://localhost:8000/docs
-- **AI Chat**: http://localhost:3000/chat (after login)
+The app will open automatically in your browser at:
+- **Local**: http://127.0.0.1:xxxxx (dynamic port)
+- **Cluster**: http://192.168.49.2:30432
+
+**Note**: Keep the terminal running to maintain the tunnel!
 
 ## 📖 Documentation
 
-- **[GROQ_SETUP.md](./GROQ_SETUP.md)** - How to get your free Groq API key and setup
-- **[backend/README.md](./backend/README.md)** - Backend API documentation
-- **[frontend/README.md](./frontend/README.md)** - Frontend documentation
+- **[HOW_IT_WORKS.md](HOW_IT_WORKS.md)** - Comprehensive beginner-friendly guide explaining the entire architecture
+- **[QUICK_START_K8S.md](QUICK_START_K8S.md)** - Detailed Kubernetes deployment guide
+- **[KUBERNETES.md](KUBERNETES.md)** - Complete Kubernetes documentation
+- **[helm/todo-app/README.md](helm/todo-app/README.md)** - Helm chart documentation
 
-## 🏗️ Architecture
+## 🎯 Usage
 
-### How JWT Authentication Works
+### Creating Tasks
+
+**Traditional Way:**
+1. Click "Dashboard" in navigation
+2. Click "Add Task"
+3. Enter task details
+4. Click "Create"
+
+**AI Way:**
+1. Click "Chat" in navigation
+2. Type: "Create a task to buy groceries"
+3. AI creates the task for you!
+
+### AI Chat Examples
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Frontend (Next.js)                       │
-│  ┌──────────────┐      ┌──────────────┐                    │
-│  │ Better Auth  │ ──▶  │   JWT Token  │                    │
-│  │   Server     │      │  (7 days)    │                    │
-│  └──────────────┘      └──────────────┘                    │
-│                               │                             │
-│                               ▼                             │
-│                       Authorization: Bearer <token>         │
-└───────────────────────────────┼─────────────────────────────┘
-                                │
-                   Shared Secret: BETTER_AUTH_SECRET
-                                │
-┌───────────────────────────────┼─────────────────────────────┐
-│                               ▼                             │
-│                       ┌──────────────┐                      │
-│                       │  JWT Verify  │                      │
-│                       │  Middleware  │                      │
-│                       └──────────────┘                      │
-│                               │                             │
-│                               ▼                             │
-│                       ┌──────────────┐                      │
-│                       │  Task Routes │                      │
-│                       │  (Filtered)  │                      │
-│                       └──────────────┘                      │
-│                    Backend (FastAPI)                        │
-└─────────────────────────────────────────────────────────────┘
+You: "Show me all my urgent tasks"
+AI: Here are your urgent tasks: [lists tasks with high priority]
+
+You: "Create a task to finish the project report by Friday"
+AI: Created task "Finish project report" with due date February 16, 2026
+
+You: "Mark the grocery task as completed"
+AI: Task "Buy groceries" marked as completed ✓
+
+You: "What tasks do I have for today?"
+AI: You have 3 tasks due today: [lists tasks]
 ```
 
-**Flow**:
-1. User logs in → Better Auth issues JWT token (stored in HTTP-only cookie)
-2. Frontend makes API call → Token attached to `Authorization` header
-3. Backend verifies token → Uses shared secret to validate signature
-4. Backend identifies user → Decodes user ID from token
-5. Backend filters data → Returns only user's own tasks
+## 🔧 Development
 
-## 📚 Tech Stack
+### Project Structure
 
-### Backend
-- **Framework**: FastAPI
-- **AI Provider**: Groq (Llama 3.3 70B) - FREE!
-- **MCP Server**: Model Context Protocol SDK
-- **Database**: PostgreSQL
-- **ORM**: SQLAlchemy 2.0
-- **Migrations**: Alembic
-- **Authentication**: JWT verification with python-jose
-- **Password Hashing**: Passlib + bcrypt
-- **Testing**: Pytest (15/15 passing ✅)
+```
+todo-app/
+├── frontend/               # Next.js application
+│   ├── app/               # Pages and routes
+│   ├── components/        # React components
+│   ├── hooks/            # Custom hooks
+│   ├── lib/              # Utilities
+│   └── Dockerfile
+│
+├── backend/               # FastAPI application
+│   ├── app/
+│   │   ├── models/       # Database models
+│   │   ├── routers/      # API routes
+│   │   ├── schemas/      # Pydantic schemas
+│   │   ├── services/     # Business logic
+│   │   └── mcp_server.py # AI tools server
+│   ├── alembic/          # Migrations
+│   └── Dockerfile
+│
+├── helm/todo-app/         # Helm chart
+│   ├── templates/        # K8s manifests
+│   └── values.yaml       # Configuration
+│
+├── k8s/                  # Raw K8s manifests
+├── scripts/              # Deployment scripts
+└── HOW_IT_WORKS.md       # Architecture guide
+```
 
-### Frontend
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript
-- **Authentication**: Better Auth with JWT plugin
-- **Styling**: Tailwind CSS
-- **Theme**: Dark/Light mode support
-- **HTTP Client**: Axios (auto-attaches JWT tokens)
-- **Testing**: Jest + React Testing Library
+### Useful Commands
 
-## 🔒 Security Features
+```bash
+# View all pods
+kubectl get pods -n todo-app
 
-| Feature | Description |
-|---------|-------------|
-| **User Isolation** | Each user only sees their own tasks |
-| **Stateless Auth** | Backend doesn't need to call frontend to verify users |
-| **Token Expiry** | JWT tokens expire after 7 days |
-| **Signature Verification** | Tokens can't be forged without the secret key |
-| **Password Hashing** | Better Auth handles secure bcrypt password storage |
-| **CORS Protection** | Restricted to allowed origins |
+# View logs
+kubectl logs -l app=backend -n todo-app --tail=50
+kubectl logs -l app=frontend -n todo-app --tail=50
+
+# Scale deployments
+kubectl scale deployment backend --replicas=3 -n todo-app
+
+# Restart deployment
+kubectl rollout restart deployment backend -n todo-app
+
+# Access database
+kubectl exec -it deployment/postgres -n todo-app -- psql -U postgres -d todo_db
+
+# Port forward backend
+kubectl port-forward svc/backend 8000:8000 -n todo-app
+
+# Kubernetes dashboard
+minikube dashboard
+```
+
+### Environment Variables
+
+**Backend** (`backend-config` ConfigMap):
+- `DEBUG` - Debug mode (default: false)
+- `ALGORITHM` - JWT algorithm (default: HS256)
+- `ACCESS_TOKEN_EXPIRE_MINUTES` - Token expiry (default: 30)
+- `ALLOWED_ORIGINS` - CORS origins
+
+**Secrets** (`backend-secret`):
+- `GROQ_API_KEY` - Groq API key for AI features
+- `SECRET_KEY` - Application secret key
+- `BETTER_AUTH_SECRET` - Auth encryption key
+
+**Database** (`postgres-secret`):
+- `POSTGRES_PASSWORD` - Database password
+
+## 📊 Monitoring
+
+### Health Checks
+
+All services expose health endpoints:
+
+- Frontend: http://localhost:3000/
+- Backend: http://localhost:8000/health
+- MCP Server: http://localhost:8001/health
+
+### View Resources
+
+```bash
+# Pod status
+kubectl get pods -n todo-app
+
+# Services
+kubectl get svc -n todo-app
+
+# Events
+kubectl get events -n todo-app --sort-by='.lastTimestamp'
+
+# Resource usage (requires metrics-server)
+kubectl top pods -n todo-app
+```
 
 ## 🧪 Testing
 
-### Backend Tests
+### Run Backend Tests
+
 ```bash
 cd backend
-uv run pytest                    # Run all tests
-uv run pytest --cov-report=html  # With coverage report
+pytest
 ```
 
-**Results**: ✅ 15/15 tests passing
-- Authentication: 8/8 tests
-- Task CRUD: 7/7 tests
-- User isolation verified
-- JWT verification working
+### Run Frontend Tests
 
-### Frontend Tests
 ```bash
 cd frontend
-npm test              # Run all tests
-npm run test:watch    # Watch mode
+npm test
 ```
 
-## 🛠️ Development
+## 🔄 Updates and Rollbacks
 
-### Database Migrations
+### Update the Application
 
-**Backend (Alembic)**:
 ```bash
-cd backend
-uv run alembic revision --autogenerate -m "description"
-uv run alembic upgrade head
-uv run alembic downgrade -1
+# Modify code, then rebuild images
+docker build -t todo-backend:v2 ./backend
+
+# Update deployment
+helm upgrade todo-app ./helm/todo-app \
+  --set backend.image.tag=v2 \
+  -n todo-app
 ```
 
-**Frontend (Better Auth)**:
+### Rollback
+
 ```bash
-cd frontend
-npx better-auth migrate
+# View history
+helm history todo-app -n todo-app
+
+# Rollback to previous version
+helm rollback todo-app -n todo-app
+
+# Rollback to specific revision
+helm rollback todo-app 3 -n todo-app
 ```
 
-### Code Quality
+## 🛡️ Security
 
-**Backend**:
+### Production Considerations
+
+⚠️ **Before deploying to production, update these secrets:**
+
+```yaml
+# helm/todo-app/values.yaml
+backend:
+  secrets:
+    secretKey: "CHANGE-THIS-IN-PRODUCTION"
+    betterAuthSecret: "CHANGE-THIS-IN-PRODUCTION"
+    groqApiKey: "your-actual-groq-api-key"
+
+postgresql:
+  auth:
+    password: "CHANGE-THIS-IN-PRODUCTION"
+```
+
+### Best Practices
+
+- ✅ Use external secret management (Vault, AWS Secrets Manager)
+- ✅ Enable TLS/HTTPS for all endpoints
+- ✅ Implement network policies
+- ✅ Use non-root containers (already configured)
+- ✅ Scan images for vulnerabilities
+- ✅ Enable pod security policies
+- ✅ Regular backups of PostgreSQL data
+
+## 🧹 Cleanup
+
+### Stop the Application
+
 ```bash
-cd backend
-uv run black app tests      # Format
-uv run flake8 app tests     # Lint
-uv run mypy app             # Type check
+# Delete Helm release
+helm uninstall todo-app -n todo-app
+
+# Stop Minikube
+minikube stop
+
+# Delete Minikube cluster (removes all data)
+minikube delete
 ```
-
-**Frontend**:
-```bash
-cd frontend
-npm run lint                # ESLint
-npm run build               # Production build
-```
-
-## 📝 API Endpoints
-
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login and get JWT token
-- `GET /api/auth/me` - Get current user info
-
-### Tasks (JWT Required)
-- `GET /api/{user_id}/tasks` - List all tasks
-- `POST /api/{user_id}/tasks` - Create new task
-- `GET /api/{user_id}/tasks/{task_id}` - Get task by ID
-- `PUT /api/{user_id}/tasks/{task_id}` - Update task
-- `DELETE /api/{user_id}/tasks/{task_id}` - Delete task
-
-### AI Chat (JWT Required)
-- `POST /api/chat` - Send message to AI chatbot, get response
-- `GET /api/chat` - List user's conversations
-- `GET /api/chat/{conversation_id}` - Get conversation history
-
-All endpoints require `Authorization: Bearer <token>` header and enforce user ownership.
-
-## 🤖 AI Chatbot Features
-
-The AI chatbot can help you manage tasks conversationally:
-
-**Example Commands:**
-- "Create a task to buy groceries"
-- "Show me all my tasks"
-- "Mark task 5 as complete"
-- "Update task 3 description to 'Buy milk and eggs'"
-- "Delete the task about groceries"
-- "Show me only incomplete tasks"
-
-**MCP Tools Available:**
-- `create_task` - Create new tasks
-- `list_tasks` - View all or filtered tasks
-- `get_task` - Get specific task details
-- `update_task` - Modify task properties
-- `delete_task` - Remove tasks
-- `mark_task_complete` / `mark_task_incomplete` - Toggle completion status
-
-All AI operations are automatically scoped to the authenticated user!
-
-## 🐛 Troubleshooting
-
-### 401 Unauthorized Errors
-- ✅ Verify `BETTER_AUTH_SECRET` matches in both .env files
-- ✅ Check token is being sent in request headers (DevTools → Network)
-- ✅ Try logout and login again to get fresh token
-
-### AI Chatbot Not Working
-- ✅ Ensure `GROQ_API_KEY` is set in backend/.env
-- ✅ Get your free key at https://console.groq.com
-- ✅ Restart backend server after adding the key
-- ✅ Check backend logs for any API errors
-
-### Database Connection Errors
-- ✅ Ensure PostgreSQL is running: `pg_isready`
-- ✅ Check DATABASE_URL in .env files
-- ✅ Verify database exists: `psql -l | grep todo_db`
-
-### Better Auth Migration Fails
-- ✅ Ensure DATABASE_URL is set in frontend/.env.local
-- ✅ Check PostgreSQL permissions
-- ✅ Try: `cd frontend && npx better-auth migrate --force`
-
-### CORS Errors
-- ✅ Verify backend ALLOWED_ORIGINS includes frontend URL
-- ✅ Check both services are running on correct ports
-- ✅ Clear browser cache and cookies
-
-## 📦 Project Structure
-
-```
-.
-├── backend/                    # FastAPI backend
-│   ├── app/
-│   │   ├── models/            # SQLAlchemy models (User, Task, Conversation)
-│   │   ├── schemas/           # Pydantic schemas  
-│   │   ├── routers/           # API endpoints (auth, tasks, chat)
-│   │   ├── services/          # JWT verification, AI agent
-│   │   ├── mcp_server.py      # MCP server for AI tools
-│   │   ├── config.py          # Settings (GROQ_API_KEY, BETTER_AUTH_SECRET)
-│   │   └── main.py            # FastAPI app
-│   ├── tests/                 # 15 tests (all passing)
-│   └── alembic/               # Database migrations
-│
-├── frontend/                   # Next.js frontend
-│   ├── app/                   
-│   │   ├── (auth)/            # Login & register pages
-│   │   ├── dashboard/         # Task management dashboard
-│   │   └── chat/              # AI chatbot interface
-│   ├── components/            # React components (Navigation, Tasks, Theme)
-│   ├── contexts/              # Theme context for dark mode
-│   ├── lib/
-│   │   ├── auth-server.ts    # Better Auth config (JWT plugin)
-│   │   ├── auth-client.ts    # Client-side auth helpers
-│   │   └── api.ts            # Axios client (auto-attaches JWT)
-│   └── hooks/                # Custom React hooks
-│
-├── GROQ_SETUP.md              # Free AI setup guide
-└── README.md                  # This file
-```
-
-## 🚀 Deployment
-
-### Production Checklist
-
-- [ ] Generate secure `BETTER_AUTH_SECRET` (32+ chars): `openssl rand -base64 32`
-- [ ] Set environment variables in production
-- [ ] Ensure secrets match in frontend and backend
-- [ ] Set up HTTPS/SSL certificates
-- [ ] Update `ALLOWED_ORIGINS` with production domain
-- [ ] Set `DEBUG=False` in backend
-- [ ] Run database migrations
-- [ ] Test authentication flow end-to-end
-
-### Environment Variables for Production
-
-**Backend**:
-```bash
-DATABASE_URL=postgresql://user:pass@host:5432/todo_db
-BETTER_AUTH_SECRET=<your-production-secret>
-GROQ_API_KEY=<your-groq-api-key>
-ALLOWED_ORIGINS=https://yourdomain.com
-DEBUG=False
-```
-
-**Frontend**:
-```bash
-NEXT_PUBLIC_API_URL=https://api.yourdomain.com
-BETTER_AUTH_SECRET=<same-secret-as-backend>
-DATABASE_URL=postgresql://user:pass@host:5432/todo_db
-```
-
-## 📄 License
-
-This project is built following the Spec-Kit Plus methodology.
 
 ## 🤝 Contributing
 
-1. Follow coding standards (backend: PEP 8, frontend: ESLint)
-2. Write tests for new features
-3. Update documentation as needed
-4. Ensure all tests pass before committing
+Contributions are welcome! Please feel free to submit a Pull Request.
 
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
+## 📝 License
+
+This project is open source and available under the [MIT License](LICENSE).
+
+## 🙏 Acknowledgments
+
+- [Groq](https://groq.com/) - For providing free AI inference
+- [Better Auth](https://www.better-auth.com/) - For the authentication library
+- [FastAPI](https://fastapi.tiangolo.com/) - For the amazing Python framework
+- [Next.js](https://nextjs.org/) - For the React framework
+- [Kubernetes](https://kubernetes.io/) - For container orchestration
+
+## 📞 Support
+
+- 📖 Read [HOW_IT_WORKS.md](HOW_IT_WORKS.md) for detailed explanations
+- 🐛 [Report issues](https://github.com/yourusername/todo-app/issues)
+- 💬 [Discussions](https://github.com/yourusername/todo-app/discussions)
+
+## 🗺️ Roadmap
+
+- [ ] Add task categories and tags
+- [ ] Implement task sharing between users
+- [ ] Add calendar view
+- [ ] Email notifications
+- [ ] Mobile app (React Native)
+- [ ] Export tasks to various formats
+- [ ] Integration with Google Calendar
+- [ ] Voice commands for task management
+
+---
+
+**Made with ❤️ using Kubernetes, Next.js, FastAPI, and AI**
+
+⭐ Star this repository if you find it helpful!

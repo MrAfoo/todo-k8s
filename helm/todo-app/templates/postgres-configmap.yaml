@@ -1,0 +1,13 @@
+{{- if .Values.postgresql.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: postgres
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+data:
+  POSTGRES_DB: {{ .Values.postgresql.config.database | quote }}
+  POSTGRES_USER: {{ .Values.postgresql.config.user | quote }}
+{{- end }}

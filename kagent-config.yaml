@@ -1,0 +1,543 @@
+# Kagent Configuration for Todo App
+# AI-powered Kubernetes monitoring, scaling, and optimization
+
+apiVersion: kagent.ai/v1
+kind: Configuration
+metadata:
+  name: todo-app-config
+  namespace: todo-app
+  labels:
+    app: todo-app
+    managed-by: kagent
+    version: "1.0"
+spec:
+  # Application identification
+  application:
+    name: todo-app
+    version: "0.1.0"
+    components:
+      - name: backend
+        type: api
+        deployment: backend
+        service: backend
+        critical: true
+      - name: frontend
+        type: web
+        deployment: frontend
+        service: frontend
+        critical: true
+      - name: postgres
+        type: database
+        deployment: postgres
+        service: postgres
+        critical: true
+
+  # Autoscaling configuration
+  autoscaling:
+    enabled: true
+    strategy: predictive  # Options: reactive, predictive, ml-based
+    
+    # Backend autoscaling
+    backend:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      metrics:
+        - type: cpu
+          targetAverageUtilization: 70
+        - type: memory
+          targetAverageUtilization: 80
+        - type: custom
+          name: http_requests_per_second
+          targetValue: 1000
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 60
+          policies:
+            - type: Percent
+              value: 50
+              periodSeconds: 60
+            - type: Pods
+              value: 2
+              periodSeconds: 60
+        scaleDown:
+          stabilizationWindowSeconds: 300
+          policies:
+            - type: Percent
+              value: 25
+              periodSeconds: 60
+    
+    # Frontend autoscaling
+    frontend:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+      metrics:
+        - type: cpu
+          targetAverageUtilization: 70
+        - type: memory
+          targetAverageUtilization: 80
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 60
+          policies:
+            - type: Percent
+              value: 50
+              periodSeconds: 60
+        scaleDown:
+          stabilizationWindowSeconds: 300
+          policies:
+            - type: Percent
+              value: 25
+              periodSeconds: 60
+
+  # Monitoring configuration
+  monitoring:
+    enabled: true
+    interval: 30s
+    retention: 7d
+    
+    # Health checks
+    healthChecks:
+      backend:
+        endpoint: /health
+        interval: 10s
+        timeout: 5s
+        unhealthyThreshold: 3
+      frontend:
+        endpoint: /
+        interval: 10s
+        timeout: 5s
+        unhealthyThreshold: 3
+      postgres:
+        command: ["pg_isready", "-U", "postgres"]
+        interval: 10s
+        timeout: 5s
+        unhealthyThreshold: 3
+    
+    # Metrics collection
+    metrics:
+      - name: cpu_usage
+        component: all
+        aggregation: average
+      - name: memory_usage
+        component: all
+        aggregation: average
+      - name: request_latency
+        component: backend
+        aggregation: p95
+      - name: request_rate
+        component: backend
+        aggregation: sum
+      - name: error_rate
+        component: backend
+        aggregation: sum
+      - name: database_connections
+        component: postgres
+        aggregation: current
+      - name: database_query_time
+        component: postgres
+        aggregation: p95
+
+  # Alerting configuration
+  alerts:
+    enabled: true
+    channels:
+      - type: console
+        enabled: true
+      - type: webhook
+        enabled: false
+        url: https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+      - type: email
+        enabled: false
+        recipients:
+          - devops@example.com
+    
+    rules:
+      # Backend alerts
+      - name: backend-high-cpu
+        component: backend
+        condition: cpu > 90%
+        duration: 5m
+        severity: warning
+        action: scale-up
+        message: "Backend CPU usage is above 90% for 5 minutes"
+      
+      - name: backend-critical-cpu
+        component: backend
+        condition: cpu > 95%
+        duration: 2m
+        severity: critical
+        action: scale-up-aggressive
+        message: "Backend CPU usage is critically high (>95%)"
+      
+      - name: backend-high-memory
+        component: backend
+        condition: memory > 85%
+        duration: 5m
+        severity: warning
+        action: scale-up
+        message: "Backend memory usage is above 85%"
+      
+      - name: backend-high-error-rate
+        component: backend
+        condition: error_rate > 5%
+        duration: 2m
+        severity: critical
+        action: alert-only
+        message: "Backend error rate exceeds 5%"
+      
+      - name: backend-slow-responses
+        component: backend
+        condition: request_latency_p95 > 500ms
+        duration: 3m
+        severity: warning
+        action: investigate
+        message: "Backend P95 latency exceeds 500ms"
+      
+      # Frontend alerts
+      - name: frontend-high-cpu
+        component: frontend
+        condition: cpu > 90%
+        duration: 5m
+        severity: warning
+        action: scale-up
+        message: "Frontend CPU usage is above 90%"
+      
+      # Database alerts
+      - name: postgres-high-connections
+        component: postgres
+        condition: connections > 80
+        duration: 5m
+        severity: warning
+        action: alert-only
+        message: "PostgreSQL connection count is high"
+      
+      - name: postgres-slow-queries
+        component: postgres
+        condition: query_time_p95 > 100ms
+        duration: 5m
+        severity: warning
+        action: investigate
+        message: "PostgreSQL queries are slower than expected"
+      
+      # Low traffic alerts (scale down)
+      - name: backend-low-traffic
+        component: backend
+        condition: request_rate < 10
+        duration: 15m
+        severity: info
+        action: scale-down
+        message: "Backend traffic is low, considering scale down"
+      
+      - name: frontend-low-traffic
+        component: frontend
+        condition: cpu < 20%
+        duration: 15m
+        severity: info
+        action: scale-down
+        message: "Frontend CPU usage is low, considering scale down"
+
+  # Optimization configuration
+  optimization:
+    enabled: true
+    runInterval: 1h
+    
+    recommendations:
+      - type: resource-sizing
+        enabled: true
+        description: "Analyze actual resource usage and recommend optimal requests/limits"
+      
+      - type: replica-count
+        enabled: true
+        description: "Suggest optimal replica counts based on traffic patterns"
+      
+      - type: cost-reduction
+        enabled: true
+        description: "Identify opportunities to reduce cloud costs"
+      
+      - type: performance-tuning
+        enabled: true
+        description: "Suggest configuration changes to improve performance"
+      
+      - type: security-hardening
+        enabled: true
+        description: "Identify security improvements"
+    
+    actions:
+      autoApply: false  # Set to true for automatic optimization
+      requireApproval: true
+      notifyBeforeApplying: true
+
+  # Predictive scaling configuration
+  predictiveScaling:
+    enabled: true
+    model: ml-based  # Options: statistical, ml-based, hybrid
+    
+    trainingData:
+      historyDays: 14
+      updateInterval: 6h
+    
+    predictions:
+      - timeframe: 1h
+        confidence: 0.85
+      - timeframe: 6h
+        confidence: 0.75
+      - timeframe: 24h
+        confidence: 0.65
+    
+    patterns:
+      - type: daily
+        enabled: true
+      - type: weekly
+        enabled: true
+      - type: seasonal
+        enabled: false
+      - type: event-based
+        enabled: false
+
+  # Anomaly detection
+  anomalyDetection:
+    enabled: true
+    sensitivity: medium  # Options: low, medium, high
+    
+    detection:
+      - metric: cpu_usage
+        method: statistical
+        threshold: 3-sigma
+      - metric: memory_usage
+        method: statistical
+        threshold: 3-sigma
+      - metric: request_rate
+        method: ml-based
+        threshold: adaptive
+      - metric: error_rate
+        method: threshold
+        threshold: 2x-baseline
+      - metric: latency
+        method: ml-based
+        threshold: adaptive
+    
+    actions:
+      onAnomaly:
+        - alert
+        - investigate
+        - createIncident
+      autoRemediate: false
+
+  # Capacity planning
+  capacityPlanning:
+    enabled: true
+    forecastDays: 30
+    
+    metrics:
+      - cpu
+      - memory
+      - storage
+      - network
+    
+    growth:
+      expectedRate: 10  # 10% per month
+      seasonality: true
+    
+    recommendations:
+      generateReport: true
+      reportInterval: weekly
+      includeProjections: true
+
+  # SLA/SLO configuration
+  sla:
+    enabled: true
+    
+    objectives:
+      - name: api-availability
+        target: 99.9
+        measurement: uptime
+        window: 30d
+      
+      - name: api-latency
+        target: 200
+        measurement: response_time_p95
+        window: 1h
+        unit: ms
+      
+      - name: error-budget
+        target: 0.1
+        measurement: error_rate
+        window: 30d
+        unit: percent
+    
+    reporting:
+      enabled: true
+      interval: daily
+      destinations:
+        - console
+        - dashboard
+
+  # Cost tracking
+  costTracking:
+    enabled: true
+    provider: kubernetes  # Options: kubernetes, aws, gcp, azure
+    
+    budgets:
+      - name: development
+        limit: 100
+        period: monthly
+        currency: USD
+        alertThreshold: 80
+      
+      - name: staging
+        limit: 500
+        period: monthly
+        currency: USD
+        alertThreshold: 80
+      
+      - name: production
+        limit: 5000
+        period: monthly
+        currency: USD
+        alertThreshold: 90
+    
+    optimization:
+      autoSuggest: true
+      includeReservedInstances: false
+      includeSpotInstances: true
+
+  # Chaos engineering
+  chaosEngineering:
+    enabled: false  # Enable only in non-production environments
+    
+    experiments:
+      - name: pod-failure
+        enabled: false
+        frequency: weekly
+        duration: 5m
+      
+      - name: network-latency
+        enabled: false
+        frequency: weekly
+        duration: 10m
+        latency: 100ms
+      
+      - name: resource-exhaustion
+        enabled: false
+        frequency: monthly
+        duration: 5m
+
+  # Incident management
+  incidentManagement:
+    enabled: true
+    
+    autoCreate: true
+    severity:
+      critical: auto-create-page
+      warning: auto-create-ticket
+      info: log-only
+    
+    integration:
+      - type: pagerduty
+        enabled: false
+      - type: opsgenie
+        enabled: false
+      - type: slack
+        enabled: false
+
+---
+
+# Kagent HorizontalPodAutoscaler for Backend
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backend-hpa
+  namespace: todo-app
+  labels:
+    app: backend
+    managed-by: kagent
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+      selectPolicy: Max
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 25
+          periodSeconds: 60
+      selectPolicy: Min
+
+---
+
+# Kagent HorizontalPodAutoscaler for Frontend
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: frontend-hpa
+  namespace: todo-app
+  labels:
+    app: frontend
+    managed-by: kagent
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: frontend
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+      selectPolicy: Max
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 25
+          periodSeconds: 60
+      selectPolicy: Min

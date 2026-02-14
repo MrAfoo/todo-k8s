@@ -1,0 +1,92 @@
+{{- if .Values.backend.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: backend
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      {{- if .Values.postgresql.enabled }}
+      initContainers:
+      - name: wait-for-postgres
+        image: "{{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}"
+        command:
+        - sh
+        - -c
+        - |
+          until pg_isready -h postgres -U postgres; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+      {{- end }}
+      containers:
+      - name: backend
+        image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+        ports:
+        - containerPort: {{ .Values.backend.service.port }}
+          name: http
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          export DATABASE_URL="postgresql://{{ .Values.postgresql.config.user }}:${POSTGRES_PASSWORD}@postgres:5432/{{ .Values.postgresql.config.database }}"
+          exec uvicorn app.main:app --host 0.0.0.0 --port {{ .Values.backend.service.port }}
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "todo-app.fullname" . }}-postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: BETTER_AUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: backend-secret
+              key: BETTER_AUTH_SECRET
+        - name: SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: backend-secret
+              key: SECRET_KEY
+        - name: GROQ_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: backend-secret
+              key: GROQ_API_KEY
+        envFrom:
+        - configMapRef:
+            name: backend-config
+        resources:
+          {{- toYaml .Values.backend.resources | nindent 10 }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: {{ .Values.backend.service.port }}
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: {{ .Values.backend.service.port }}
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+      securityContext:
+        {{- toYaml .Values.securityContext.backend | nindent 8 }}
+{{- end }}

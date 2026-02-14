@@ -146,8 +146,13 @@ Instructions: As an expert architect, generate a detailed architectural plan for
    - Out of Scope: explicitly excluded items.
    - External Dependencies: systems/services/teams and ownership.
 
-2. Key Decisions and Rationale:
-   - Options Considered, Trade-offs, Rationale.
+2. Key Decisions and Rationale (Architecture Decision Records):
+   - Format: AD-XXX: Decision Title
+   - Sections: Context, Decision, Alternatives Considered, Rationale, Consequences
+   - Example: See specs/phase-iv-mcp-deployment/plan.md
+     - AD-011: MCP Server Deployment Strategy
+     - AD-012: Service Communication Pattern
+     - AD-013: Scaling Strategy
    - Principles: measurable, reversible where possible, smallest viable change.
 
 3. Interfaces and API Contracts:
@@ -196,15 +201,113 @@ If ALL true, suggest:
 
 Wait for consent; never auto-create ADRs. Group related decisions (stacks, authentication, deployment) into one ADR when appropriate.
 
+## sp.* Command Usage (Claude Code)
+
+### sp.plan - Create Implementation Plan
+
+**When to use:** Starting new features, architecture changes, complex refactoring
+
+**Example:**
+```
+sp.plan Architecture:
+Containerization:
+- Frontend: Next.js app → Docker image
+- Backend: FastAPI + MCP server → Docker image
+Deployment:
+- Minikube cluster with Helm Charts
+- Separate deployments for frontend, backend, MCP server
+Deliverables:
+- constitution/ updated principles
+- specs/ Phase IV deployment specs
+- charts/ Helm charts
+- README.md with setup instructions
+```
+
+**Output:** Comprehensive plan with architecture decisions, task breakdown, timeline
+
+### sp.impl - Implement Plan
+
+**When to use:** Executing an approved plan
+
+**Example:**
+```
+sp.impl Phase IV MCP Server Deployment
+```
+
+**Output:** Implementation of all tasks, creation of files, configuration updates
+
+### sp.test - Test Implementation
+
+**When to use:** Verifying functionality after implementation
+
+**Example:**
+```
+sp.test MCP server deployment on Minikube
+```
+
+**Output:** Test results, verification of success criteria
+
+### sp.phr - Execute Command File
+
+**When to use:** Batch operations, repeatable workflows (if command file exists)
+
+**Example:**
+```
+sp.phr commands/deploy-workflow.phr
+```
+
+## Phase IV Example Workflow
+
+**1. Planning (sp.plan):**
+- Created constitution/ directory with MAIN.md, deployment.md, security.md, ai-devops.md
+- Created specs/phase-iv-mcp-deployment/ with spec.md, plan.md, tasks.md
+- Documented architecture decisions (AD-011 through AD-017)
+
+**2. Implementation (sp.impl):**
+- ✅ Created Helm templates (mcp-deployment, mcp-service, mcp-configmap, mcp-hpa)
+- ✅ Updated values.yaml with mcpServer configuration
+- ✅ Created backend/app/mcp_api.py FastAPI wrapper
+- ✅ Updated README.md with three-tier architecture and deployment guide
+- ✅ Updated CLAUDE.md with sp.* command patterns
+
+**3. Testing (sp.test):**
+```bash
+# Helm validation
+helm lint ./helm/todo-app
+helm template todo-app ./helm/todo-app
+
+# Deploy to Minikube
+helm upgrade --install todo-app ./helm/todo-app -n todo-app --create-namespace
+
+# Verify
+kubectl get pods -n todo-app
+kubectl logs -l app=mcp-server -n todo-app
+curl http://mcp-server:8001/health
+```
+
 ## Basic Project Structure
 
-- `.specify/memory/constitution.md` — Project principles
-- `specs/<feature>/spec.md` — Feature requirements
-- `specs/<feature>/plan.md` — Architecture decisions
-- `specs/<feature>/tasks.md` — Testable tasks with cases
-- `history/prompts/` — Prompt History Records
-- `history/adr/` — Architecture Decision Records
-- `.specify/` — SpecKit Plus templates and scripts
+**Constitutional Documents:**
+- `constitution/MAIN.md` — Core deployment principles
+- `constitution/deployment.md` — Deployment procedures
+- `constitution/security.md` — Security best practices
+- `constitution/ai-devops.md` — Gordon/kubectl-ai/Kagent integration
+
+**Specifications (by phase/feature):**
+- `specs/<feature>/spec.md` — Requirements and objectives
+- `specs/<feature>/plan.md` — Architecture decisions (ADRs: AD-XXX)
+- `specs/<feature>/tasks.md` — Testable implementation tasks
+
+**Kubernetes Deployment:**
+- `helm/todo-app/` — Helm chart for all services
+- `k8s/` — Raw Kubernetes manifests
+- `scripts/` — Deployment automation scripts
+
+**Historical Reference:**
+- `SPECS_HISTORY.md` — Legacy architecture decisions (AD-001 to AD-010)
+- `history/prompts/` — Prompt History Records (if using SpecKit Plus)
+- `history/adr/` — Architecture Decision Records (if using SpecKit Plus)
+- `.specify/` — SpecKit Plus templates and scripts (if present)
 
 ## Code Standards
 See `.specify/memory/constitution.md` for code quality, testing, performance, security, and architecture principles.

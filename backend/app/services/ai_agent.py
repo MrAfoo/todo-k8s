@@ -7,8 +7,8 @@ from groq import Groq
 from mcp.types import TextContent
 from sqlalchemy.orm import Session
 
-from app.mcp_server import task_mcp_server
 from app.config import settings
+from app.services.mcp_client import get_mcp_client
 
 
 class AIAgent:
@@ -230,41 +230,37 @@ class AIAgent:
         ]
 
     async def _call_mcp_tool(self, tool_name: str, arguments: dict[str, Any], db: Session) -> str:
-        """Call an MCP tool and return the result.
+        """Call an MCP tool via HTTP and return the result.
         
         Args:
             tool_name: Name of the tool to call
             arguments: Arguments to pass to the tool
-            db: Database session (passed from the request context)
+            db: Database session (not used when calling via HTTP)
             
         Returns:
             The tool result as a string
         """
-        # Call the appropriate method on the MCP server
-        # Using the provided db session instead of creating a new one
-        if tool_name == "create_task":
-            result = await task_mcp_server._create_task(db, arguments)
-        elif tool_name == "list_tasks":
-            result = await task_mcp_server._list_tasks(db, arguments)
-        elif tool_name == "get_task":
-            result = await task_mcp_server._get_task(db, arguments)
-        elif tool_name == "update_task":
-            result = await task_mcp_server._update_task(db, arguments)
-        elif tool_name == "delete_task":
-            result = await task_mcp_server._delete_task(db, arguments)
-        elif tool_name == "mark_task_complete":
-            result = await task_mcp_server._mark_task_complete(db, arguments)
-        elif tool_name == "mark_task_incomplete":
-            result = await task_mcp_server._mark_task_incomplete(db, arguments)
-        else:
-            return f"Unknown tool: {tool_name}"
-        
-        # Extract text from TextContent
-        if isinstance(result, list) and len(result) > 0:
-            if isinstance(result[0], TextContent):
-                return result[0].text
-        
-        return str(result)
+        try:
+            mcp_client = get_mcp_client()
+            result = await mcp_client.call_tool(tool_name, arguments)
+            
+            # Extract the content from the MCP response
+            if isinstance(result, dict):
+                # Handle different response formats
+                if "content" in result:
+                    content = result["content"]
+                    if isinstance(content, list) and len(content) > 0:
+                        if isinstance(content[0], dict) and "text" in content[0]:
+                            return content[0]["text"]
+                        return str(content[0])
+                    return str(content)
+                elif "result" in result:
+                    return str(result["result"])
+                return str(result)
+            
+            return str(result)
+        except Exception as e:
+            return f"Error calling MCP tool {tool_name}: {str(e)}"
 
     def chat(self, user_message: str, conversation_history: list[dict[str, str]], user_id: int, db: Session) -> str:
         """

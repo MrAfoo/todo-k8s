@@ -1,0 +1,17 @@
+apiVersion: v2
+name: todo-app
+description: A Helm chart for Todo App with AI-powered features (Frontend, Backend, MCP Server, PostgreSQL)
+type: application
+version: 0.2.0
+appVersion: "0.2.0"
+keywords:
+  - todo
+  - fastapi
+  - nextjs
+  - ai
+  - postgresql
+maintainers:
+  - name: Todo App Team
+home: https://github.com/your-org/todo-app
+sources:
+  - https://github.com/your-org/todo-app

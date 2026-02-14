@@ -1,0 +1,89 @@
+# Production environment values
+
+namespace: todo-app
+
+global:
+  imagePullPolicy: IfNotPresent
+
+postgresql:
+  persistence:
+    size: 50Gi
+    storageClass: premium-ssd
+  resources:
+    requests:
+      memory: 2Gi
+      cpu: 1000m
+    limits:
+      memory: 4Gi
+      cpu: 2000m
+
+backend:
+  replicaCount: 3
+  config:
+    debug: false
+    allowedOrigins: "https://todo-app.example.com"
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 500m
+    limits:
+      memory: 1Gi
+      cpu: 1000m
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+
+frontend:
+  replicaCount: 3
+  service:
+    type: ClusterIP
+  env:
+    nextPublicApiUrl: "https://api.todo-app.example.com"
+    nodeEnv: "production"
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 500m
+    limits:
+      memory: 1Gi
+      cpu: 1000m
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+
+mcpServer:
+  enabled: true
+  replicaCount: 2
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 500m
+    limits:
+      memory: 1Gi
+      cpu: 1000m
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: todo-app.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: todo-app-tls
+      hosts:
+        - todo-app.example.com
